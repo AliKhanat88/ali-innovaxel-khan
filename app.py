@@ -166,5 +166,58 @@ def retrieve_original_url(short_code):
     else:
         return jsonify({"error": "Short URL not found"}), 404
 
+
+@app.route("/shorten/<string:short_code>", methods=["PUT"])
+def update_short_url(short_code):
+    data = request.get_json(force=True)
+
+    # Connect to the database
+    conn = create_database_connection()
+    cursor = conn.cursor()
+    
+    # Check if the record exists
+    select_query = "SELECT id, createdAt FROM urls WHERE shortCode = %s"
+    cursor.execute(select_query, (short_code,))
+    row = cursor.fetchone()
+    if not row:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Short URL not found"}), 404
+    
+    record_id = row[0]
+    # Update the record with new URL and updated timestamp
+    updated_at = datetime.date.today()
+    update_query = "UPDATE urls set updatedAt = %s WHERE shortCode = %s"
+    try:
+        cursor.execute(update_query, (updated_at, short_code,))
+        conn.commit()
+    except mysql.connector.Error as err:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": f"Failed to update record: {err}"}), 500
+    
+    # Retrieve updated record
+    get_query = "SELECT id, url, shortCode, createdAt, updatedAt, count FROM urls WHERE id = %s"
+    cursor.execute(get_query, (record_id,))
+    updated_row = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+    
+    if updated_row:
+        result = {
+            "id": str(updated_row[0]),
+            "url": updated_row[1],
+            "shortCode": updated_row[2],
+            "createdAt": updated_row[3].isoformat(),
+            "updatedAt": updated_row[4].isoformat(),
+            "count": updated_row[5]
+        }
+        return jsonify(result), 200
+    else:
+        return jsonify({"error": "Failed to retrieve updated record"}), 500
+
+
+
 if __name__ == "__main__":
     app.run(debug=True)
