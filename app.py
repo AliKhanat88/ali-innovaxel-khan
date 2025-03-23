@@ -19,7 +19,7 @@ def get_random_string(length):
 
 app = Flask(__name__)
 
-@app.route("/create", methods=["POST", "GET"])
+@app.route("/shorten", methods=["POST", "GET"])
 def create():
     if request.method == "POST":
         data = request.get_json(force=True)
@@ -86,7 +86,60 @@ def create():
             return jsonify({"error": "Creation failed"}), 500
 
     else:
-        return "Hello World"
+        html_form = """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <title>Create Short URL</title>
+            </head>
+            <body>
+                <h1>Create a Short URL</h1>
+                <form id="urlForm">
+                    <label for="url">Enter URL:</label>
+                    <input type="text" id="url" name="url" required>
+                    <button type="submit">Submit</button>
+                </form>
+                <div id="result"></div>
+                
+                <script>
+                document.getElementById("urlForm").addEventListener("submit", function(event) {
+                    event.preventDefault();
+                    var urlValue = document.getElementById("url").value;
+                    fetch("/shorten", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ url: urlValue })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if(data.error) {
+                            document.getElementById("result").innerHTML = "<p style='color:red;'>" + data.error + "</p>";
+                        } else {
+                            document.getElementById("result").innerHTML = 
+                                "<p>Short URL created:</p>" +
+                                "<ul>" +
+                                "<li>ID: " + data.id + "</li>" +
+                                "<li>URL: " + data.url + "</li>" +
+                                "<li>Short Code: " + data.shortCode + "</li>" +
+                                "<li>Created At: " + data.createdAt + "</li>" +
+                                "<li>Updated At: " + data.updatedAt + "</li>" +
+                                "<li>Count: " + data.count + "</li>" +
+                                "</ul>";
+                        }
+                    })
+                    .catch(error => {
+                        document.getElementById("result").innerHTML = "<p style='color:red;'>Error: " + error + "</p>";
+                    });
+                });
+                </script>
+            </body>
+            </html>
+            """
+        return html_form
+
 
 if __name__ == "__main__":
     app.run(debug=True)
