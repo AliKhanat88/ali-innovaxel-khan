@@ -103,11 +103,19 @@ def retrieve_original_url(short_code):
         query = "SELECT id, url, shortCode, createdAt, updatedAt, count FROM urls WHERE shortCode = %s"
         cursor.execute(query, (short_code,))
         row = cursor.fetchone()
+        conn.commit()
+        
+        # Increment the count by 1
+        update_query = "UPDATE urls SET count = count + 1 WHERE shortCode = %s"
+        cursor.execute(update_query, (short_code,))
+        conn.commit()
+        
         cursor.close()
         conn.close()
     except mysql.connector.Error as err:
         return jsonify({"error": f"Database error: {err}"}), 500
-    
+
+
     # Return the record if found, otherwise return a 404 error
     if row:
         result = {
@@ -115,8 +123,7 @@ def retrieve_original_url(short_code):
             "url": row[1],
             "shortCode": row[2],
             "createdAt": row[3].isoformat(),
-            "updatedAt": row[4].isoformat(),
-            "count": row[5]
+            "updatedAt": row[4].isoformat()
         }
         return jsonify(result), 200
     else:
