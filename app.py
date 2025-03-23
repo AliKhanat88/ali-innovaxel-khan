@@ -206,6 +206,36 @@ def delete_short_url(short_code):
     # Return a 204 No Content status code upon successful deletion
     return "", 204
 
+# Endpoint to get statistics for a short URL using the GET method
+@app.route("/shorten/<string:short_code>/stats", methods=["GET"])
+def get_stats(short_code):
+    try:
+        conn = create_database_connection()
+        cursor = conn.cursor()
+        # Query to retrieve record with the given short code
+        query = "SELECT id, url, shortCode, createdAt, updatedAt, count FROM urls WHERE shortCode = %s"
+        cursor.execute(query, (short_code,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+    except mysql.connector.Error as err:
+        return jsonify({"error": f"Database error: {err}"}), 500
+
+    if row:
+        # Map the database column 'count' to 'accessCount' in the response
+        result = {
+            "id": str(row[0]),
+            "url": row[1],
+            "shortCode": row[2],
+            "createdAt": row[3].isoformat(),
+            "updatedAt": row[4].isoformat(),
+            "accessCount": row[5]
+        }
+        return jsonify(result), 200
+    else:
+        return jsonify({"error": "Short URL not found"}), 404
+
+
 if __name__ == "__main__":
     # Run the Flask application in debug mode
     app.run(debug=True)
