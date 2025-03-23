@@ -140,6 +140,31 @@ def create():
             """
         return html_form
 
+@app.route("/shorten/<string:short_code>", methods=["GET"])
+def retrieve_original_url(short_code):
+    try:
+        conn = create_database_connection()
+        cursor = conn.cursor()
+        query = "SELECT id, url, shortCode, createdAt, updatedAt, count FROM urls WHERE shortCode = %s"
+        cursor.execute(query, (short_code,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+    except mysql.connector.Error as err:
+        return jsonify({"error": f"Database error: {err}"}), 500
+    
+    if row:
+        result = {
+            "id": str(row[0]),
+            "url": row[1],
+            "shortCode": row[2],
+            "createdAt": row[3].isoformat(),
+            "updatedAt": row[4].isoformat(),
+            "count": row[5]
+        }
+        return jsonify(result), 200
+    else:
+        return jsonify({"error": "Short URL not found"}), 404
 
 if __name__ == "__main__":
     app.run(debug=True)
