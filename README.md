@@ -1,7 +1,5 @@
 # ali-innovaxel-khan
 
-# ali-innovaxel-khan
-
 git clone <repository-url>
 cd <repository-folder>
 
